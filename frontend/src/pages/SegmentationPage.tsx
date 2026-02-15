@@ -17,6 +17,23 @@ const POSE_CONNECTIONS: Array<[number, number]> = [
   [27, 29], [28, 30], [29, 31], [30, 32], [27, 31], [28, 32],
 ];
 
+function getObjectFitRect(video: HTMLVideoElement, boxW: number, boxH: number, fit: "cover" | "contain") {
+  const srcW = video.videoWidth || boxW;
+  const srcH = video.videoHeight || boxH;
+  const srcRatio = srcW / srcH;
+  const boxRatio = boxW / boxH;
+
+  const useFullWidth = fit === "contain" ? srcRatio > boxRatio : srcRatio < boxRatio;
+  if (useFullWidth) {
+    const width = boxW;
+    const height = boxW / srcRatio;
+    return { x: 0, y: (boxH - height) / 2, width, height };
+  }
+  const height = boxH;
+  const width = boxH * srcRatio;
+  return { x: (boxW - width) / 2, y: 0, width, height };
+}
+
 export default function SegmentationPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -45,8 +62,8 @@ export default function SegmentationPage() {
       const canvas = overlayRef.current;
       const video = videoRef.current;
       if (!canvas || !video) return;
-      const w = video.clientWidth;
-      const h = video.clientHeight;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
       if (!w || !h) return;
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
@@ -54,8 +71,8 @@ export default function SegmentationPage() {
       }
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, w, h);
+      ctx.clearRect(0, 0, w, h);
+      const rect = getObjectFitRect(video, w, h, "contain");
       if (showPose) {
         const posePoints = result?.posePoints ?? [];
         ctx.strokeStyle = "#16a34a";
@@ -63,15 +80,15 @@ export default function SegmentationPage() {
         POSE_CONNECTIONS.forEach(([a, b]) => {
           if (!posePoints[a] || !posePoints[b]) return;
           ctx.beginPath();
-          ctx.moveTo(posePoints[a].x * w, posePoints[a].y * h);
-          ctx.lineTo(posePoints[b].x * w, posePoints[b].y * h);
+          ctx.moveTo(rect.x + posePoints[a].x * rect.width, rect.y + posePoints[a].y * rect.height);
+          ctx.lineTo(rect.x + posePoints[b].x * rect.width, rect.y + posePoints[b].y * rect.height);
           ctx.stroke();
         });
 
         ctx.fillStyle = "#22c55e";
         posePoints.forEach((p, idx) => {
-          const x = p.x * w;
-          const y = p.y * h;
+          const x = rect.x + p.x * rect.width;
+          const y = rect.y + p.y * rect.height;
           ctx.beginPath();
           ctx.arc(x, y, 3, 0, Math.PI * 2);
           ctx.fill();
@@ -82,7 +99,7 @@ export default function SegmentationPage() {
         ctx.fillStyle = "#38bdf8";
         (result?.facePoints ?? []).forEach((p) => {
           ctx.beginPath();
-          ctx.arc(p.x * w, p.y * h, 1.5, 0, Math.PI * 2);
+          ctx.arc(rect.x + p.x * rect.width, rect.y + p.y * rect.height, 1.5, 0, Math.PI * 2);
           ctx.fill();
         });
       }
@@ -96,8 +113,7 @@ export default function SegmentationPage() {
       <Dialog open={camera.requestOpen} title="Autoriser la camera" description="MediaPipe a besoin de la webcam pour detecter le corps et le visage." actions={<Button onClick={() => void camera.start()}>Autoriser</Button>} onClose={camera.closePermission} />
       <ToolTopBar title="Segmentation corps + points + face" controls={<><Button onClick={() => (camera.running ? camera.stop() : void camera.start())}>{camera.running ? "Stop" : "Start"}</Button><Button variant="secondary" onClick={() => setShowPose((v) => !v)}>{showPose ? "Masquer pose" : "Afficher pose"}</Button><Button variant="secondary" onClick={() => setShowFace((v) => !v)}>{showFace ? "Masquer face" : "Afficher face"}</Button><Button variant="outline" onClick={() => setShowLabels((v) => !v)}>{showLabels ? "Masquer labels" : "Afficher labels"}</Button></>} />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 pb-4">
-        <VideoStage videoRef={videoRef} className="aspect-video" objectFit="contain" />
-        <div className="relative overflow-hidden rounded-xl border border-white/10"><canvas ref={overlayRef} className="h-full w-full" /></div>
+        <VideoStage videoRef={videoRef} overlayRef={overlayRef} className="aspect-video" objectFit="contain" />
       </main>
     </div>
   );
