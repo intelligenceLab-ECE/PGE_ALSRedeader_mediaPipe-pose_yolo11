@@ -4,6 +4,7 @@ import { ToolTopBar } from "../components/ToolTopBar";
 import { VideoStage } from "../components/VideoStage";
 import { useCamera } from "../hooks/useCamera";
 import { useFrameApi } from "../hooks/useFrameApi";
+import { getVideoRect } from "../lib/videoRect";
 import { SegmentationResponse } from "../types";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
@@ -16,23 +17,6 @@ const POSE_CONNECTIONS: Array<[number, number]> = [
   [11, 23], [12, 24], [23, 24], [23, 25], [24, 26], [25, 27], [26, 28],
   [27, 29], [28, 30], [29, 31], [30, 32], [27, 31], [28, 32],
 ];
-
-function getObjectFitRect(video: HTMLVideoElement, boxW: number, boxH: number, fit: "cover" | "contain") {
-  const srcW = video.videoWidth || boxW;
-  const srcH = video.videoHeight || boxH;
-  const srcRatio = srcW / srcH;
-  const boxRatio = boxW / boxH;
-
-  const useFullWidth = fit === "contain" ? srcRatio > boxRatio : srcRatio < boxRatio;
-  if (useFullWidth) {
-    const width = boxW;
-    const height = boxW / srcRatio;
-    return { x: 0, y: (boxH - height) / 2, width, height };
-  }
-  const height = boxH;
-  const width = boxH * srcRatio;
-  return { x: (boxW - width) / 2, y: 0, width, height };
-}
 
 export default function SegmentationPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -62,8 +46,8 @@ export default function SegmentationPage() {
       const canvas = overlayRef.current;
       const video = videoRef.current;
       if (!canvas || !video) return;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
+      const w = video.clientWidth;
+      const h = video.clientHeight;
       if (!w || !h) return;
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
@@ -71,8 +55,9 @@ export default function SegmentationPage() {
       }
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.clearRect(0, 0, w, h);
-      const rect = getObjectFitRect(video, w, h, "contain");
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, w, h);
+      const rect = getVideoRect(w, h, video.videoWidth, video.videoHeight, "contain");
       if (showPose) {
         const posePoints = result?.posePoints ?? [];
         ctx.strokeStyle = "#16a34a";
@@ -113,7 +98,8 @@ export default function SegmentationPage() {
       <Dialog open={camera.requestOpen} title="Autoriser la camera" description="MediaPipe a besoin de la webcam pour detecter le corps et le visage." actions={<Button onClick={() => void camera.start()}>Autoriser</Button>} onClose={camera.closePermission} />
       <ToolTopBar title="Segmentation corps + points + face" controls={<><Button onClick={() => (camera.running ? camera.stop() : void camera.start())}>{camera.running ? "Stop" : "Start"}</Button><Button variant="secondary" onClick={() => setShowPose((v) => !v)}>{showPose ? "Masquer pose" : "Afficher pose"}</Button><Button variant="secondary" onClick={() => setShowFace((v) => !v)}>{showFace ? "Masquer face" : "Afficher face"}</Button><Button variant="outline" onClick={() => setShowLabels((v) => !v)}>{showLabels ? "Masquer labels" : "Afficher labels"}</Button></>} />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 pb-4">
-        <VideoStage videoRef={videoRef} overlayRef={overlayRef} className="aspect-video" objectFit="contain" />
+        <VideoStage videoRef={videoRef} className="aspect-video" objectFit="contain" />
+        <div className="relative overflow-hidden rounded-xl border border-white/10"><canvas ref={overlayRef} className="h-full w-full" /></div>
       </main>
     </div>
   );

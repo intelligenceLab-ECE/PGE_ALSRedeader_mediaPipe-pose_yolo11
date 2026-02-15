@@ -4,6 +4,7 @@ import { ToolTopBar } from "../components/ToolTopBar";
 import { VideoStage } from "../components/VideoStage";
 import { useCamera } from "../hooks/useCamera";
 import { useFrameApi } from "../hooks/useFrameApi";
+import { getVideoRect } from "../lib/videoRect";
 import { AslResponse } from "../types";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
@@ -13,23 +14,6 @@ import alphabetImage from "../assets/alphabet.jpg";
 const HAND_CONNECTIONS: Array<[number, number]> = [
   [0, 1],[1, 2],[2, 3],[3, 4],[0, 5],[5, 6],[6, 7],[7, 8],[5, 9],[9, 10],[10, 11],[11, 12],[9, 13],[13, 14],[14, 15],[15, 16],[13, 17],[17, 18],[18, 19],[19, 20],[0, 17],
 ];
-
-function getObjectFitRect(video: HTMLVideoElement, boxW: number, boxH: number, fit: "cover" | "contain") {
-  const srcW = video.videoWidth || boxW;
-  const srcH = video.videoHeight || boxH;
-  const srcRatio = srcW / srcH;
-  const boxRatio = boxW / boxH;
-
-  const useFullWidth = fit === "contain" ? srcRatio > boxRatio : srcRatio < boxRatio;
-  if (useFullWidth) {
-    const width = boxW;
-    const height = boxW / srcRatio;
-    return { x: 0, y: (boxH - height) / 2, width, height };
-  }
-  const height = boxH;
-  const width = boxH * srcRatio;
-  return { x: (boxW - width) / 2, y: 0, width, height };
-}
 
 export default function AslPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -63,8 +47,8 @@ export default function AslPage() {
       const video = videoRef.current;
       const canvas = overlayRef.current;
       if (!video || !canvas || !result) return;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
+      const w = video.clientWidth;
+      const h = video.clientHeight;
       if (!w || !h) return;
       if (canvas.width != w || canvas.height != h) {
         canvas.width = w;
@@ -74,7 +58,7 @@ export default function AslPage() {
       if (!ctx) return;
       ctx.clearRect(0, 0, w, h);
       if (!showLandmarks) return;
-      const rect = getObjectFitRect(video, w, h, "contain");
+      const rect = getVideoRect(w, h, video.videoWidth, video.videoHeight, "cover");
       const pts = result.handLandmarks || [];
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#22d3ee";
@@ -109,7 +93,7 @@ export default function AslPage() {
       <ToolTopBar title="ASL Recognition" controls={<><Button onClick={() => (camera.running ? camera.stop() : void camera.start())}>{camera.running ? "Stop camera" : "Start camera"}</Button><Button variant="secondary" onClick={() => setFreeze((v) => !v)}>{freeze ? "Unfreeze" : "Freeze"}</Button><Button variant="outline" onClick={() => setShowLandmarks((v) => !v)}>{showLandmarks ? "Masquer landmarks" : "Afficher landmarks"}</Button></>} />
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 pb-4">
-        <VideoStage videoRef={videoRef} overlayRef={overlayRef} className="aspect-video" objectFit="contain" />
+        <VideoStage videoRef={videoRef} overlayRef={overlayRef} className="aspect-video" />
         <div className="glass flex flex-col gap-2 p-3">
           <div className="flex flex-wrap items-center gap-4">
             <p className="text-xl font-bold text-violet-300">{result?.label ?? "--"}</p>

@@ -30,7 +30,7 @@ class AppConfig:
         self.asl_labels_path = os.getenv("ASL_LABELS_PATH", "backend/assets/labels.txt")
         self.asl_smoothing = int(os.getenv("ASL_SMOOTHING_WINDOW", "5"))
         self.asl_padding = float(os.getenv("ASL_PADDING", "0.2"))
-        self.asl_min_confidence = float(os.getenv("ASL_MIN_CONFIDENCE", "0.8"))
+        self.asl_min_confidence = float(os.getenv("ASL_MIN_CONFIDENCE", "0.7"))
         self.api_frame_max_size = int(os.getenv("API_FRAME_MAX_SIZE", str(900 * 1024)))
         self.segmentation_face_stride = int(os.getenv("SEGMENTATION_FACE_STRIDE", "6"))
 

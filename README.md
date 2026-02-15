@@ -14,6 +14,7 @@ Application full-stack unique (FastAPI + React/Vite) pour lyceens.
 
 - ASL_MODEL_PATH (defaut: backend/assets/model.tflite)
 - ASL_LABELS_PATH (defaut: backend/assets/labels.txt)
+- ASL_MIN_CONFIDENCE (defaut: 0.7)
 - API_FRAME_MAX_SIZE (defaut: 921600)
 - SEGMENTATION_FACE_STRIDE (defaut: 6)
 - optionnel: KAGGLE_USERNAME / KAGGLE_KEY
