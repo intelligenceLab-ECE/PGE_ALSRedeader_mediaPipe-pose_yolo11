@@ -38,3 +38,11 @@ Thumbs.db
 # *.tflite
 # *.h5
 # *.pkl
+
+# JS/Frontend build and dependencies
+node_modules/
+frontend/node_modules/
+.next/
+
+# Archives / local exports
+*.zip
