@@ -46,3 +46,7 @@ frontend/node_modules/
 
 # Archives / local exports
 *.zip
+
+# Keep frontend utility library tracked
+!frontend/src/lib/
+!frontend/src/lib/**
